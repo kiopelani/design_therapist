@@ -61,6 +61,11 @@ body {
     @apply rounded-2xl border border-stone-200/80 bg-white/60 px-4 py-3.5 text-left shadow-sm transition-all duration-200 hover:border-stone-300 hover:bg-white;
   }
 
+  .option-tile:hover {
+    color: var(--color-stone-900);
+
+  }
+
   .option-tile-selected {
     @apply border-stone-900 bg-stone-900 text-white shadow-md shadow-stone-900/10;
   }
