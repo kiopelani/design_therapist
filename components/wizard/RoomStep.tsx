@@ -9,25 +9,27 @@ interface RoomStepProps {
 
 export function RoomStep({ data, onChange }: RoomStepProps) {
   return (
-    <Card>
-      <h2 className="text-2xl font-semibold text-stone-900">Tell us about your room</h2>
-      <p className="mt-2 text-stone-600">
+    <Card className="animate-fade-up">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">
+        Step 1
+      </p>
+      <h2 className="text-display mt-2 text-3xl text-stone-900">
+        Tell us about your room
+      </h2>
+      <p className="mt-3 text-stone-600">
         We&apos;ll use this to shape a design that fits your space.
       </p>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-8 space-y-7">
         <div>
-          <label
-            htmlFor="room-type"
-            className="mb-2 block text-sm font-medium text-stone-700"
-          >
+          <label htmlFor="room-type" className="field-label">
             Room type
           </label>
           <select
             id="room-type"
             value={data.type}
             onChange={(e) => onChange({ ...data, type: e.target.value })}
-            className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20"
+            className="field-input appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b645c%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22m6 8 4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.25rem] bg-[right_1rem_center] bg-no-repeat pr-10"
           >
             {ROOM_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -38,9 +40,7 @@ export function RoomStep({ data, onChange }: RoomStepProps) {
         </div>
 
         <div>
-          <span className="mb-2 block text-sm font-medium text-stone-700">
-            Approximate size
-          </span>
+          <span className="field-label">Approximate size</span>
           <div className="grid grid-cols-3 gap-3">
             {(
               [
@@ -48,33 +48,29 @@ export function RoomStep({ data, onChange }: RoomStepProps) {
                 { value: "medium", label: "Medium", hint: "120–250 sq ft" },
                 { value: "large", label: "Large", hint: "250+ sq ft" },
               ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onChange({ ...data, size: option.value })}
-                className={`rounded-xl border px-3 py-3 text-left transition-colors ${
-                  data.size === option.value
-                    ? "border-amber-700 bg-amber-50"
-                    : "border-stone-300 bg-white hover:border-stone-400"
-                }`}
-              >
-                <span className="block text-sm font-medium text-stone-900">
-                  {option.label}
-                </span>
-                <span className="mt-0.5 block text-xs text-stone-500">
-                  {option.hint}
-                </span>
-              </button>
-            ))}
+            ).map((option) => {
+              const selected = data.size === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onChange({ ...data, size: option.value })}
+                  className={`option-tile ${selected ? "option-tile-selected" : ""}`}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span
+                    className={`option-hint mt-1 block text-xs ${selected ? "" : "text-stone-500"}`}
+                  >
+                    {option.hint}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="constraints"
-            className="mb-2 block text-sm font-medium text-stone-700"
-          >
+          <label htmlFor="constraints" className="field-label">
             Constraints or must-haves
           </label>
           <textarea
@@ -83,7 +79,7 @@ export function RoomStep({ data, onChange }: RoomStepProps) {
             onChange={(e) => onChange({ ...data, constraints: e.target.value })}
             placeholder='e.g. "Must keep my desk", "Rental — no painting walls"'
             rows={4}
-            className="w-full resize-none rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none placeholder:text-stone-400 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20"
+            className="field-input resize-none"
           />
         </div>
       </div>

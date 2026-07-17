@@ -21,22 +21,29 @@ export function ShoppingList({ items }: ShoppingListProps) {
 
   return (
     <Card>
-      <h2 className="text-2xl font-semibold text-stone-900">Shopping list</h2>
-      <p className="mt-2 text-stone-600">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">
+        Curated for you
+      </p>
+      <h2 className="text-display mt-2 text-3xl text-stone-900">Shopping list</h2>
+      <p className="mt-3 text-stone-600">
         Everything you need to bring this design to life.
       </p>
 
       <div className="mt-8 space-y-8">
         {Object.entries(grouped).map(([category, categoryItems]) => (
           <div key={category}>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-800">
-              {category}
-            </h3>
-            <ul className="mt-4 divide-y divide-stone-100">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-900">
+                {category}
+              </h3>
+              <div className="h-px flex-1 bg-stone-200" />
+              <span className="text-xs text-stone-400">{categoryItems.length}</span>
+            </div>
+            <ul className="mt-4 space-y-3">
               {categoryItems.map((item, index) => (
                 <li
                   key={`${category}-${index}`}
-                  className="flex items-start justify-between gap-4 py-4 first:pt-2"
+                  className="flex items-start justify-between gap-4 rounded-2xl border border-stone-200/60 bg-white/50 px-4 py-4"
                 >
                   <div>
                     <p className="font-medium text-stone-900">{item.item}</p>
@@ -45,7 +52,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                     )}
                   </div>
                   {item.estPrice && (
-                    <span className="shrink-0 text-sm font-medium text-stone-600">
+                    <span className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
                       {item.estPrice}
                     </span>
                   )}

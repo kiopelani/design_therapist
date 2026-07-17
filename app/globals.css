@@ -1,18 +1,94 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --background: #f5f2ec;
+  --foreground: #1a1816;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #ffffff;
+  --border: rgba(26, 24, 22, 0.08);
+  --border-strong: rgba(26, 24, 22, 0.14);
+  --muted: #6b645c;
+  --accent: #9a7b4f;
+  --accent-soft: rgba(154, 123, 79, 0.12);
+  --accent-glow: rgba(154, 123, 79, 0.25);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-instrument-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@layer utilities {
+  .mesh-bg {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(154, 123, 79, 0.14), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(180, 155, 120, 0.1), transparent),
+      radial-gradient(ellipse 50% 30% at 50% 100%, rgba(26, 24, 22, 0.04), transparent);
+  }
+
+  .glass-card {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow:
+      0 1px 2px rgba(26, 24, 22, 0.04),
+      0 8px 32px rgba(26, 24, 22, 0.06);
+  }
+
+  .text-display {
+    font-family: var(--font-instrument-serif), Georgia, serif;
+  }
+}
+
+@layer components {
+  .field-label {
+    @apply mb-2.5 block text-xs font-semibold uppercase tracking-[0.12em] text-stone-500;
+  }
+
+  .field-input {
+    @apply w-full rounded-2xl border border-stone-200/80 bg-white/80 px-4 py-3.5 text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-400 focus:border-stone-400 focus:bg-white focus:ring-4 focus:ring-stone-900/5;
+  }
+
+  .option-tile {
+    @apply rounded-2xl border border-stone-200/80 bg-white/60 px-4 py-3.5 text-left shadow-sm transition-all duration-200 hover:border-stone-300 hover:bg-white;
+  }
+
+  .option-tile-selected {
+    @apply border-stone-900 bg-stone-900 text-white shadow-md shadow-stone-900/10;
+  }
+
+  .option-tile-selected .option-hint {
+    @apply text-stone-300;
+  }
+
+  .style-chip {
+    @apply rounded-full border border-stone-200/80 bg-white/70 px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition-all duration-200 hover:border-stone-300 hover:bg-white;
+  }
+
+  .style-chip-selected {
+    @apply border-stone-900 bg-stone-900 text-white shadow-md shadow-stone-900/15;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
 }

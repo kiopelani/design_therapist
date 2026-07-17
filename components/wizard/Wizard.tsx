@@ -59,13 +59,21 @@ export function Wizard() {
 
   if (result) {
     return (
-      <div className="space-y-8">
+      <div className="animate-fade-up space-y-8">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
+            Your design
+          </p>
+          <h2 className="text-display mt-2 text-3xl text-stone-900 sm:text-4xl">
+            {result.designSummary.title}
+          </h2>
+        </div>
         <DesignResult
           imageUrl={result.imageUrl}
           summary={result.designSummary}
         />
         <ShoppingList items={result.shoppingList} />
-        <div className="flex justify-center pb-8">
+        <div className="flex justify-center pb-4">
           <Button variant="secondary" onClick={handleStartOver}>
             Start over
           </Button>
@@ -75,35 +83,37 @@ export function Wizard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <ProgressBar
         currentStep={step}
         totalSteps={STEP_LABELS.length}
         labels={STEP_LABELS}
       />
 
-      {step === 0 && (
-        <RoomStep
-          data={wizardData.room}
-          onChange={(room) => setWizardData({ ...wizardData, room })}
-        />
-      )}
+      <div key={step}>
+        {step === 0 && (
+          <RoomStep
+            data={wizardData.room}
+            onChange={(room) => setWizardData({ ...wizardData, room })}
+          />
+        )}
 
-      {step === 1 && (
-        <StyleStep
-          data={wizardData.style}
-          onChange={(style) => setWizardData({ ...wizardData, style })}
-        />
-      )}
+        {step === 1 && (
+          <StyleStep
+            data={wizardData.style}
+            onChange={(style) => setWizardData({ ...wizardData, style })}
+          />
+        )}
 
-      {step === 2 && (
-        <GenerateStep data={wizardData} isLoading={isLoading} error={error} />
-      )}
+        {step === 2 && (
+          <GenerateStep data={wizardData} isLoading={isLoading} error={error} />
+        )}
+      </div>
 
-      <div className="flex justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-t border-stone-900/5 pt-6">
         {step > 0 ? (
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={() => setStep(step - 1)}
             disabled={isLoading}
           >

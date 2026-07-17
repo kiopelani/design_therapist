@@ -20,20 +20,21 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
   }
 
   return (
-    <Card>
-      <h2 className="text-2xl font-semibold text-stone-900">
+    <Card className="animate-fade-up">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">
+        Step 2
+      </p>
+      <h2 className="text-display mt-2 text-3xl text-stone-900">
         What&apos;s your style?
       </h2>
-      <p className="mt-2 text-stone-600">
+      <p className="mt-3 text-stone-600">
         Pick up to two styles that speak to you.
       </p>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-8 space-y-7">
         <div>
-          <span className="mb-3 block text-sm font-medium text-stone-700">
-            Style preferences
-          </span>
-          <div className="flex flex-wrap gap-2">
+          <span className="field-label">Style preferences</span>
+          <div className="flex flex-wrap gap-2.5">
             {STYLE_OPTIONS.map((style) => {
               const selected = data.styles.includes(style);
               return (
@@ -41,11 +42,7 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
                   key={style}
                   type="button"
                   onClick={() => toggleStyle(style)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-                    selected
-                      ? "border-amber-700 bg-amber-700 text-white"
-                      : "border-stone-300 bg-white text-stone-700 hover:border-stone-400"
-                  }`}
+                  className={`style-chip ${selected ? "style-chip-selected" : ""}`}
                 >
                   {style}
                 </button>
@@ -55,10 +52,7 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
         </div>
 
         <div>
-          <label
-            htmlFor="colors"
-            className="mb-2 block text-sm font-medium text-stone-700"
-          >
+          <label htmlFor="colors" className="field-label">
             Color preferences
           </label>
           <input
@@ -67,15 +61,12 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
             value={data.colors}
             onChange={(e) => onChange({ ...data, colors: e.target.value })}
             placeholder='e.g. "Warm neutrals with sage green accents"'
-            className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none placeholder:text-stone-400 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20"
+            className="field-input"
           />
         </div>
 
         <div>
-          <label
-            htmlFor="mood"
-            className="mb-2 block text-sm font-medium text-stone-700"
-          >
+          <label htmlFor="mood" className="field-label">
             Desired mood
           </label>
           <input
@@ -84,14 +75,12 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
             value={data.mood}
             onChange={(e) => onChange({ ...data, mood: e.target.value })}
             placeholder='e.g. "Calm and cozy", "Bright and energizing"'
-            className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none placeholder:text-stone-400 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20"
+            className="field-input"
           />
         </div>
 
         <div>
-          <span className="mb-2 block text-sm font-medium text-stone-700">
-            Budget range
-          </span>
+          <span className="field-label">Budget range</span>
           <div className="grid grid-cols-3 gap-3">
             {(
               [
@@ -99,25 +88,24 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
                 { value: "medium", label: "Mid-range", hint: "Balanced quality" },
                 { value: "high", label: "Premium", hint: "Designer pieces" },
               ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onChange({ ...data, budget: option.value })}
-                className={`rounded-xl border px-3 py-3 text-left transition-colors ${
-                  data.budget === option.value
-                    ? "border-amber-700 bg-amber-50"
-                    : "border-stone-300 bg-white hover:border-stone-400"
-                }`}
-              >
-                <span className="block text-sm font-medium text-stone-900">
-                  {option.label}
-                </span>
-                <span className="mt-0.5 block text-xs text-stone-500">
-                  {option.hint}
-                </span>
-              </button>
-            ))}
+            ).map((option) => {
+              const selected = data.budget === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onChange({ ...data, budget: option.value })}
+                  className={`option-tile ${selected ? "option-tile-selected" : ""}`}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span
+                    className={`option-hint mt-1 block text-xs ${selected ? "" : "text-stone-500"}`}
+                  >
+                    {option.hint}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
