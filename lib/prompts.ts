@@ -1,10 +1,79 @@
 import { formatEnrichedInspirationForPrompt } from "./style-inspiration";
 import type {
+  DesignBrief,
   EnrichedInspiration,
   GenerateRequest,
+  RoomAnalysisResult,
+  RoomInput,
   SelectedInspiration,
 } from "./types";
 import { getRoomSizeDescription } from "./types";
+
+export function buildRoomVisionAnalysisPrompt(
+  roomType: string,
+  constraints: string,
+): string {
+  return `You are an expert interior designer analyzing a photo of a client's actual ${roomType}.
+
+Study the attached room photo carefully. Identify layout, architectural features (windows, doors, ceiling height, built-ins), existing furniture and decor, wall/floor conditions, lighting, and spatial constraints.
+
+Client constraints: ${constraints || "None specified"}
+
+Respond with ONLY valid JSON matching this schema:
+{
+  "layout": "room shape, proportions, and spatial flow",
+  "architecturalFeatures": "windows, doors, moldings, built-ins, and fixed elements to preserve",
+  "existingFurniture": "notable furniture and decor already in the room",
+  "conditions": "wall/floor condition, rental limitations visible, wear, or other practical notes",
+  "summary": "concise synthesis of how to tailor a redesign to this specific room"
+}`;
+}
+
+export function formatRoomAnalysisForPrompt(analysis: RoomAnalysisResult): string {
+  if (!analysis.summary) {
+    return "No room photo provided.";
+  }
+
+  return `Client's actual room (from photo analysis):
+- Layout: ${analysis.layout}
+- Architectural features to preserve: ${analysis.architecturalFeatures}
+- Existing furniture: ${analysis.existingFurniture}
+- Conditions: ${analysis.conditions}
+- Summary: ${analysis.summary}`;
+}
+
+export function enhanceImagePromptWithRoom(
+  imagePrompt: string,
+  analysis: RoomAnalysisResult,
+): string {
+  if (!analysis.summary) {
+    return imagePrompt;
+  }
+
+  return `${imagePrompt}
+
+Tailor the room to match this actual space: ${analysis.summary}. Preserve architectural features: ${analysis.architecturalFeatures}.`;
+}
+
+export function buildRoomEditPrompt(
+  brief: DesignBrief,
+  analysis: RoomAnalysisResult,
+  room: RoomInput,
+): string {
+  return `Redesign this ${room.type} in a photorealistic interior design style while preserving the room's layout, window positions, door locations, ceiling, and architectural structure.
+
+Design direction: ${brief.title}
+Overview: ${brief.description}
+Color palette: ${brief.palette.join(", ")}
+Key pieces to incorporate: ${brief.keyPieces.join(", ")}
+Layout guidance: ${brief.layoutNotes}
+Room analysis: ${analysis.summary || "Preserve the existing room structure."}
+Architectural features to keep: ${analysis.architecturalFeatures || "Keep all windows, doors, and fixed elements in place."}
+Existing furniture notes: ${analysis.existingFurniture || "Replace or restyle as needed."}
+Client constraints: ${room.constraints || "None"}
+
+Apply the new style through furniture, textiles, lighting, wall treatments, and decor. The result should look like a professionally styled, wide-angle interior photo with natural lighting and no people.`;
+}
 
 export function buildVisionAnalysisPrompt(
   roomType: string,
@@ -34,8 +103,10 @@ export function buildDesignBriefPrompt(
   input: GenerateRequest,
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
 ): string {
   const { room, style } = input;
+  const roomPhotoSection = formatRoomAnalysisForPrompt(roomAnalysis);
 
   return `You are an expert interior designer. Create a customized room design brief based on the client's inputs.
 
@@ -43,9 +114,13 @@ Room type: ${room.type}
 Room size: ${getRoomSizeDescription(room)}
 Constraints: ${room.constraints || "None specified"}
 
+${roomPhotoSection}
+
 Style inspiration (rooms the client selected, with visual analysis):
 ${formatEnrichedInspirationForPrompt(enriched, combinedStyleSummary)}
 Budget: ${style.budget}
+
+When a room photo analysis is provided, tailor layout notes and imagePrompt to the actual space — preserve windows, doors, and fixed architecture; work around or incorporate existing furniture where appropriate.
 
 Respond with ONLY valid JSON matching this schema:
 {
@@ -69,12 +144,14 @@ export function buildShoppingListPrompt(
   },
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
 ): string {
   const budgetGuidance = {
     low: "budget-friendly, under $100 per item where possible",
     medium: "mid-range quality and pricing",
     high: "premium and designer-quality items",
   }[input.style.budget];
+  const roomPhotoSection = formatRoomAnalysisForPrompt(roomAnalysis);
 
   return `You are an expert interior designer creating a shopping list for a room makeover.
 
@@ -84,10 +161,15 @@ Palette: ${brief.palette.join(", ")}
 Key pieces: ${brief.keyPieces.join(", ")}
 Layout notes: ${brief.layoutNotes}
 Room: ${input.room.type} (${getRoomSizeDescription(input.room)})
+
+${roomPhotoSection}
+
 Style inspiration (with visual analysis):
 ${formatEnrichedInspirationForPrompt(enriched, combinedStyleSummary)}
 Budget guidance: ${budgetGuidance}
 Constraints: ${input.room.constraints || "None"}
+
+When a room photo analysis is provided, only list items needed for the makeover — skip furniture the client should keep, and note placement relative to the actual room.
 
 Create a practical shopping list with 10-16 items covering furniture, lighting, textiles, decor, and finishing touches. Respect the budget and constraints.
 
