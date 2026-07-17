@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateDesign } from "@/lib/openai";
 import type { GenerateRequest } from "@/lib/types";
+import { hasValidRoomSize } from "@/lib/types";
 
 export const maxDuration = 60;
 
@@ -11,6 +12,13 @@ export async function POST(request: Request) {
     if (!body.room?.type || !body.style?.styles?.length) {
       return NextResponse.json(
         { error: "Room type and at least one style are required." },
+        { status: 400 },
+      );
+    }
+
+    if (!hasValidRoomSize(body.room)) {
+      return NextResponse.json(
+        { error: "Please provide both length and width for custom room dimensions." },
         { status: 400 },
       );
     }
