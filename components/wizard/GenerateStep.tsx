@@ -105,8 +105,8 @@ export function GenerateStep({ data, isLoading, error }: GenerateStepProps) {
           </div>
           <p className="text-display text-2xl">Creating your design</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-stone-300">
-            This usually takes 20–45 seconds. We&apos;re generating your room
-            image and shopping list.
+            We&apos;re analyzing your inspiration photos, then generating your
+            room image and shopping list. This usually takes 30–60 seconds.
           </p>
         </div>
       )}

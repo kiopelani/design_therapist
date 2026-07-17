@@ -25,6 +25,20 @@ export interface SelectedInspiration {
   credit: string;
 }
 
+export interface EnrichedInspiration extends SelectedInspiration {
+  visionAnalysis?: string;
+}
+
+export interface StyleVisionResult {
+  photos: { id: string; analysis: string }[];
+  combinedStyleSummary: string;
+}
+
+export interface InspirationAnalysisResult {
+  enriched: EnrichedInspiration[];
+  combinedStyleSummary: string;
+}
+
 export interface StyleInput {
   selectedInspirations: SelectedInspiration[];
   budget: Budget;

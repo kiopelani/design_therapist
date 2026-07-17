@@ -1,13 +1,19 @@
 import OpenAI from "openai";
+import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import {
   buildDesignBriefPrompt,
   buildShoppingListPrompt,
+  buildVisionAnalysisPrompt,
 } from "./prompts";
 import type {
   DesignBrief,
+  EnrichedInspiration,
   GenerateRequest,
   GenerateResponse,
+  InspirationAnalysisResult,
+  SelectedInspiration,
   ShoppingListItem,
+  StyleVisionResult,
 } from "./types";
 
 const IMAGE_MODELS = ["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"] as const;
@@ -50,8 +56,81 @@ function getErrorMessage(error: unknown): string {
   return "Failed to generate design";
 }
 
+function fallbackAnalysis(
+  inspirations: SelectedInspiration[],
+): InspirationAnalysisResult {
+  return {
+    enriched: inspirations.map((item) => ({ ...item })),
+    combinedStyleSummary: "",
+  };
+}
+
+function mergeVisionResult(
+  inspirations: SelectedInspiration[],
+  vision: StyleVisionResult,
+): InspirationAnalysisResult {
+  const analysisById = new Map(
+    vision.photos.map((photo) => [photo.id, photo.analysis]),
+  );
+
+  return {
+    enriched: inspirations.map((item) => ({
+      ...item,
+      visionAnalysis: analysisById.get(item.id),
+    })),
+    combinedStyleSummary: vision.combinedStyleSummary,
+  };
+}
+
+export async function analyzeInspirationPhotos(
+  inspirations: SelectedInspiration[],
+  roomType: string,
+): Promise<InspirationAnalysisResult> {
+  if (!inspirations.length) {
+    return fallbackAnalysis(inspirations);
+  }
+
+  try {
+    const client = getClient();
+    const content: ChatCompletionContentPart[] = [
+      {
+        type: "text",
+        text: buildVisionAnalysisPrompt(roomType, inspirations),
+      },
+      ...inspirations.map(
+        (item): ChatCompletionContentPart => ({
+          type: "image_url",
+          image_url: {
+            url: item.imageUrl,
+            detail: "low",
+          },
+        }),
+      ),
+    ];
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content }],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+    });
+
+    const message = response.choices[0]?.message?.content;
+    if (!message) {
+      return fallbackAnalysis(inspirations);
+    }
+
+    const vision = parseJson<StyleVisionResult>(message);
+    return mergeVisionResult(inspirations, vision);
+  } catch {
+    return fallbackAnalysis(inspirations);
+  }
+}
+
 export async function generateDesignBrief(
   input: GenerateRequest,
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary: string,
 ): Promise<DesignBrief> {
   const client = getClient();
   const response = await client.chat.completions.create({
@@ -59,7 +138,7 @@ export async function generateDesignBrief(
     messages: [
       {
         role: "user",
-        content: buildDesignBriefPrompt(input),
+        content: buildDesignBriefPrompt(input, enriched, combinedStyleSummary),
       },
     ],
     response_format: { type: "json_object" },
@@ -118,6 +197,8 @@ export async function generateRoomImage(imagePrompt: string): Promise<string> {
 export async function generateShoppingList(
   input: GenerateRequest,
   brief: DesignBrief,
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary: string,
 ): Promise<ShoppingListItem[]> {
   const client = getClient();
   const response = await client.chat.completions.create({
@@ -125,7 +206,12 @@ export async function generateShoppingList(
     messages: [
       {
         role: "user",
-        content: buildShoppingListPrompt(input, brief),
+        content: buildShoppingListPrompt(
+          input,
+          brief,
+          enriched,
+          combinedStyleSummary,
+        ),
       },
     ],
     response_format: { type: "json_object" },
@@ -149,10 +235,20 @@ export async function generateDesign(
   input: GenerateRequest,
 ): Promise<GenerateResponse> {
   try {
-    const brief = await generateDesignBrief(input);
+    const { enriched, combinedStyleSummary } = await analyzeInspirationPhotos(
+      input.style.selectedInspirations,
+      input.room.type,
+    );
+
+    const brief = await generateDesignBrief(
+      input,
+      enriched,
+      combinedStyleSummary,
+    );
+
     const [imageUrl, shoppingList] = await Promise.all([
       generateRoomImage(brief.imagePrompt),
-      generateShoppingList(input, brief),
+      generateShoppingList(input, brief, enriched, combinedStyleSummary),
     ]);
 
     return {

@@ -1,4 +1,4 @@
-import type { SelectedInspiration } from "./types";
+import type { EnrichedInspiration, SelectedInspiration } from "./types";
 
 export interface InspirationPhoto {
   id: string;
@@ -53,4 +53,24 @@ export function formatStyleInspirationForPrompt(
       (item) => `- ${item.label}: ${item.styleDescription}`,
     )
     .join("\n");
+}
+
+export function formatEnrichedInspirationForPrompt(
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary?: string,
+): string {
+  if (!enriched.length) {
+    return "None specified";
+  }
+
+  const lines = enriched.map((item) => {
+    const description = item.visionAnalysis || item.styleDescription;
+    return `- ${item.label}: ${description}`;
+  });
+
+  if (combinedStyleSummary?.trim()) {
+    lines.push(`- Combined style direction: ${combinedStyleSummary.trim()}`);
+  }
+
+  return lines.join("\n");
 }
