@@ -15,6 +15,16 @@ export interface RoomInput {
   size: RoomSize;
   customDimensions: CustomDimensions;
   constraints: string;
+  roomPhoto?: string | null;
+}
+
+export interface RoomAnalysisResult {
+  layout: string;
+  architecturalFeatures: string;
+  existingFurniture: string;
+  conditions: string;
+  summary: string;
+  hasPhoto: boolean;
 }
 
 export interface SelectedInspiration {
@@ -84,6 +94,22 @@ export interface WizardData {
 }
 
 export const MAX_INSPIRATION_SELECTION = 3;
+export const MAX_ROOM_PHOTO_BYTES = 2 * 1024 * 1024;
+
+const ALLOWED_ROOM_PHOTO_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+export const EMPTY_ROOM_ANALYSIS: RoomAnalysisResult = {
+  layout: "",
+  architecturalFeatures: "",
+  existingFurniture: "",
+  conditions: "",
+  summary: "",
+  hasPhoto: false,
+};
 
 export const ROOM_TYPES = [
   "Bedroom",
@@ -106,6 +132,7 @@ export const DEFAULT_WIZARD_DATA: WizardData = {
       unit: "ft",
     },
     constraints: "",
+    roomPhoto: null,
   },
   style: {
     selectedInspirations: [],
@@ -142,4 +169,23 @@ export function hasValidRoomSize(room: RoomInput): boolean {
 
 export function hasValidStyleSelection(style: StyleInput): boolean {
   return style.selectedInspirations.length >= 1;
+}
+
+export function isValidRoomPhoto(dataUrl: string): boolean {
+  const match = dataUrl.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+  if (!match) {
+    return false;
+  }
+
+  const mimeType = match[1].toLowerCase();
+  if (!ALLOWED_ROOM_PHOTO_MIME_TYPES.has(mimeType)) {
+    return false;
+  }
+
+  try {
+    const buffer = Buffer.from(match[2], "base64");
+    return buffer.length > 0 && buffer.length <= MAX_ROOM_PHOTO_BYTES;
+  } catch {
+    return false;
+  }
 }

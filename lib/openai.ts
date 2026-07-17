@@ -2,19 +2,25 @@ import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import {
   buildDesignBriefPrompt,
+  buildRoomEditPrompt,
+  buildRoomVisionAnalysisPrompt,
   buildShoppingListPrompt,
   buildVisionAnalysisPrompt,
+  enhanceImagePromptWithRoom,
 } from "./prompts";
+import { dataUrlToFile } from "./image-data";
 import type {
   DesignBrief,
   EnrichedInspiration,
   GenerateRequest,
   GenerateResponse,
   InspirationAnalysisResult,
+  RoomAnalysisResult,
   SelectedInspiration,
   ShoppingListItem,
   StyleVisionResult,
 } from "./types";
+import { EMPTY_ROOM_ANALYSIS } from "./types";
 
 const IMAGE_MODELS = ["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"] as const;
 
@@ -127,10 +133,78 @@ export async function analyzeInspirationPhotos(
   }
 }
 
+function normalizeImageResponse(
+  data: { b64_json?: string | null; url?: string | null } | undefined,
+): string {
+  const b64 = data?.b64_json;
+  if (b64) {
+    return `data:image/png;base64,${b64}`;
+  }
+
+  const imageUrl = data?.url;
+  if (imageUrl) {
+    return imageUrl;
+  }
+
+  throw new Error("No image returned from image generation");
+}
+
+export async function analyzeRoomPhoto(
+  photoDataUrl: string | null | undefined,
+  roomType: string,
+  constraints: string,
+): Promise<RoomAnalysisResult> {
+  if (!photoDataUrl) {
+    return EMPTY_ROOM_ANALYSIS;
+  }
+
+  try {
+    const client = getClient();
+    const content: ChatCompletionContentPart[] = [
+      {
+        type: "text",
+        text: buildRoomVisionAnalysisPrompt(roomType, constraints),
+      },
+      {
+        type: "image_url",
+        image_url: {
+          url: photoDataUrl,
+          detail: "high",
+        },
+      },
+    ];
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content }],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+    });
+
+    const message = response.choices[0]?.message?.content;
+    if (!message) {
+      return { ...EMPTY_ROOM_ANALYSIS, hasPhoto: true };
+    }
+
+    const analysis = parseJson<Omit<RoomAnalysisResult, "hasPhoto">>(message);
+    return {
+      layout: analysis.layout ?? "",
+      architecturalFeatures: analysis.architecturalFeatures ?? "",
+      existingFurniture: analysis.existingFurniture ?? "",
+      conditions: analysis.conditions ?? "",
+      summary: analysis.summary ?? "",
+      hasPhoto: true,
+    };
+  } catch {
+    return { ...EMPTY_ROOM_ANALYSIS, hasPhoto: true };
+  }
+}
+
 export async function generateDesignBrief(
   input: GenerateRequest,
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
 ): Promise<DesignBrief> {
   const client = getClient();
   const response = await client.chat.completions.create({
@@ -138,7 +212,12 @@ export async function generateDesignBrief(
     messages: [
       {
         role: "user",
-        content: buildDesignBriefPrompt(input, enriched, combinedStyleSummary),
+        content: buildDesignBriefPrompt(
+          input,
+          enriched,
+          combinedStyleSummary,
+          roomAnalysis,
+        ),
       },
     ],
     response_format: { type: "json_object" },
@@ -166,17 +245,43 @@ export async function generateRoomImage(imagePrompt: string): Promise<string> {
         size: "1024x1024",
       });
 
-      const b64 = response.data?.[0]?.b64_json;
-      if (b64) {
-        return `data:image/png;base64,${b64}`;
-      }
+      return normalizeImageResponse(response.data?.[0]);
+    } catch (error) {
+      lastError = error;
+      const message = getErrorMessage(error);
+      const shouldTryNext =
+        message.includes("does not exist") || message.includes("not found");
 
-      const imageUrl = response.data?.[0]?.url;
-      if (imageUrl) {
-        return imageUrl;
+      if (!shouldTryNext) {
+        throw error;
       }
+    }
+  }
 
-      throw new Error("No image returned from image generation");
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No supported image model is available on your API key");
+}
+
+export async function editRoomImage(
+  photoDataUrl: string,
+  editPrompt: string,
+): Promise<string> {
+  const client = getClient();
+  const imageFile = await dataUrlToFile(photoDataUrl, "room.jpg");
+  let lastError: unknown;
+
+  for (const model of IMAGE_MODELS) {
+    try {
+      const response = await client.images.edit({
+        model,
+        image: imageFile,
+        prompt: editPrompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      return normalizeImageResponse(response.data?.[0]);
     } catch (error) {
       lastError = error;
       const message = getErrorMessage(error);
@@ -199,6 +304,7 @@ export async function generateShoppingList(
   brief: DesignBrief,
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
 ): Promise<ShoppingListItem[]> {
   const client = getClient();
   const response = await client.chat.completions.create({
@@ -211,6 +317,7 @@ export async function generateShoppingList(
           brief,
           enriched,
           combinedStyleSummary,
+          roomAnalysis,
         ),
       },
     ],
@@ -235,20 +342,45 @@ export async function generateDesign(
   input: GenerateRequest,
 ): Promise<GenerateResponse> {
   try {
-    const { enriched, combinedStyleSummary } = await analyzeInspirationPhotos(
-      input.style.selectedInspirations,
-      input.room.type,
-    );
+    const [{ enriched, combinedStyleSummary }, roomAnalysis] = await Promise.all([
+      analyzeInspirationPhotos(
+        input.style.selectedInspirations,
+        input.room.type,
+      ),
+      analyzeRoomPhoto(
+        input.room.roomPhoto,
+        input.room.type,
+        input.room.constraints,
+      ),
+    ]);
 
     const brief = await generateDesignBrief(
       input,
       enriched,
       combinedStyleSummary,
+      roomAnalysis,
     );
 
+    const imagePromise = input.room.roomPhoto
+      ? editRoomImage(
+          input.room.roomPhoto,
+          buildRoomEditPrompt(brief, roomAnalysis, input.room),
+        ).catch(() =>
+          generateRoomImage(
+            enhanceImagePromptWithRoom(brief.imagePrompt, roomAnalysis),
+          ),
+        )
+      : generateRoomImage(brief.imagePrompt);
+
     const [imageUrl, shoppingList] = await Promise.all([
-      generateRoomImage(brief.imagePrompt),
-      generateShoppingList(input, brief, enriched, combinedStyleSummary),
+      imagePromise,
+      generateShoppingList(
+        input,
+        brief,
+        enriched,
+        combinedStyleSummary,
+        roomAnalysis,
+      ),
     ]);
 
     return {

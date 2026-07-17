@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { generateDesign } from "@/lib/openai";
 import type { GenerateRequest } from "@/lib/types";
-import { hasValidRoomSize, hasValidStyleSelection } from "@/lib/types";
+import { hasValidRoomSize, hasValidStyleSelection, isValidRoomPhoto } from "@/lib/types";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
     if (!hasValidRoomSize(body.room)) {
       return NextResponse.json(
         { error: "Please provide both length and width for custom room dimensions." },
+        { status: 400 },
+      );
+    }
+
+    if (body.room.roomPhoto && !isValidRoomPhoto(body.room.roomPhoto)) {
+      return NextResponse.json(
+        { error: "Invalid room photo. Please upload a JPEG, PNG, or WebP image under 2 MB." },
         { status: 400 },
       );
     }

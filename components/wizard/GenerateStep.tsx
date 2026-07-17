@@ -60,6 +60,19 @@ export function GenerateStep({ data, isLoading, error }: GenerateStepProps) {
                 <dd className="mt-1 text-stone-800">{data.room.constraints}</dd>
               </div>
             )}
+            {data.room.roomPhoto && (
+              <div className="pt-2.5">
+                <dt className="text-stone-500">Room photo</dt>
+                <dd className="mt-2 overflow-hidden rounded-xl border border-stone-200/60">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={data.room.roomPhoto}
+                    alt="Your room"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </dd>
+              </div>
+            )}
           </dl>
         </ReviewBlock>
 
@@ -105,8 +118,9 @@ export function GenerateStep({ data, isLoading, error }: GenerateStepProps) {
           </div>
           <p className="text-display text-2xl">Creating your design</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-stone-300">
-            We&apos;re analyzing your inspiration photos, then generating your
-            room image and shopping list. This usually takes 30–60 seconds.
+            {data.room.roomPhoto
+              ? "We're analyzing your room photo and inspiration images, then generating your redesigned room and shopping list. This usually takes 30–60 seconds."
+              : "We're analyzing your inspiration photos, then generating your room image and shopping list. This usually takes 30–60 seconds."}
           </p>
         </div>
       )}

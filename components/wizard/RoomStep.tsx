@@ -1,5 +1,9 @@
+"use client";
+
+import { useRef, useState } from "react";
 import type { RoomInput } from "@/lib/types";
 import { ROOM_TYPES } from "@/lib/types";
+import { processRoomPhotoFile } from "@/lib/room-photo";
 import { Card } from "@/components/ui/Card";
 
 interface RoomStepProps {
@@ -8,6 +12,10 @@ interface RoomStepProps {
 }
 
 export function RoomStep({ data, onChange }: RoomStepProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   function setSizeMode(sizeMode: RoomInput["sizeMode"]) {
     onChange({ ...data, sizeMode });
   }
@@ -20,6 +28,40 @@ export function RoomStep({ data, onChange }: RoomStepProps) {
       ...data,
       customDimensions: { ...data.customDimensions, [field]: value },
     });
+  }
+
+  async function handlePhotoSelected(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setUploadError(null);
+    setIsProcessing(true);
+
+    try {
+      const roomPhoto = await processRoomPhotoFile(file);
+      onChange({ ...data, roomPhoto });
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : "Failed to process image.",
+      );
+    } finally {
+      setIsProcessing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0] ?? null;
+    void handlePhotoSelected(file);
+  }
+
+  function removePhoto() {
+    setUploadError(null);
+    onChange({ ...data, roomPhoto: null });
   }
 
   return (
@@ -51,6 +93,74 @@ export function RoomStep({ data, onChange }: RoomStepProps) {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <span className="field-label">Photo of your room (optional)</span>
+          <p className="mb-3 text-sm text-stone-500">
+            Upload a photo so we can tailor the design to your actual space.
+          </p>
+
+          {data.roomPhoto ? (
+            <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white/50">
+              <div className="relative aspect-[4/3] bg-stone-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={data.roomPhoto}
+                  alt="Your room"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 p-4">
+                <p className="text-sm text-stone-600">Room photo added</p>
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="text-sm font-medium text-stone-700 underline-offset-2 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleDrop}
+              className="rounded-2xl border border-dashed border-stone-300/80 bg-white/40 p-6 text-center"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  void handlePhotoSelected(file);
+                }}
+              />
+              <p className="text-sm text-stone-600">
+                Drag and drop a photo here, or{" "}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                  className="font-medium text-stone-900 underline-offset-2 hover:underline disabled:opacity-60"
+                >
+                  browse files
+                </button>
+              </p>
+              <p className="mt-2 text-xs text-stone-400">
+                JPEG, PNG, or WebP up to 10 MB
+              </p>
+              {isProcessing && (
+                <p className="mt-3 text-sm text-stone-500">Processing photo...</p>
+              )}
+            </div>
+          )}
+
+          {uploadError && (
+            <p className="mt-3 text-sm text-red-700">{uploadError}</p>
+          )}
         </div>
 
         <div>
