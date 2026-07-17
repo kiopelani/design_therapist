@@ -10,6 +10,8 @@ import type {
   ShoppingListItem,
 } from "./types";
 
+const IMAGE_MODELS = ["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"] as const;
+
 function getClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -25,6 +27,27 @@ function parseJson<T>(content: string): T {
     throw new Error("Failed to parse AI response as JSON");
   }
   return JSON.parse(jsonMatch[0]) as T;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof OpenAI.APIError) {
+    if (error.status === 401) {
+      return "Invalid OpenAI API key. Check your OPENAI_API_KEY in .env.local.";
+    }
+    if (error.status === 429) {
+      return "OpenAI rate limit reached. Please wait a moment and try again.";
+    }
+    if (error.message.includes("does not exist")) {
+      return "The configured image model is unavailable on your API key.";
+    }
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Failed to generate design";
 }
 
 export async function generateDesignBrief(
@@ -53,24 +76,43 @@ export async function generateDesignBrief(
 
 export async function generateRoomImage(imagePrompt: string): Promise<string> {
   const client = getClient();
-  const response = await client.images.generate({
-    model: "gpt-image-1",
-    prompt: imagePrompt,
-    n: 1,
-    size: "1024x1024",
-  });
+  let lastError: unknown;
 
-  const b64 = response.data?.[0]?.b64_json;
-  if (b64) {
-    return `data:image/png;base64,${b64}`;
+  for (const model of IMAGE_MODELS) {
+    try {
+      const response = await client.images.generate({
+        model,
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      const b64 = response.data?.[0]?.b64_json;
+      if (b64) {
+        return `data:image/png;base64,${b64}`;
+      }
+
+      const imageUrl = response.data?.[0]?.url;
+      if (imageUrl) {
+        return imageUrl;
+      }
+
+      throw new Error("No image returned from image generation");
+    } catch (error) {
+      lastError = error;
+      const message = getErrorMessage(error);
+      const shouldTryNext =
+        message.includes("does not exist") || message.includes("not found");
+
+      if (!shouldTryNext) {
+        throw error;
+      }
+    }
   }
 
-  const imageUrl = response.data?.[0]?.url;
-  if (imageUrl) {
-    return imageUrl;
-  }
-
-  throw new Error("No image returned from image generation");
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No supported image model is available on your API key");
 }
 
 export async function generateShoppingList(
@@ -106,20 +148,24 @@ export async function generateShoppingList(
 export async function generateDesign(
   input: GenerateRequest,
 ): Promise<GenerateResponse> {
-  const brief = await generateDesignBrief(input);
-  const [imageUrl, shoppingList] = await Promise.all([
-    generateRoomImage(brief.imagePrompt),
-    generateShoppingList(input, brief),
-  ]);
+  try {
+    const brief = await generateDesignBrief(input);
+    const [imageUrl, shoppingList] = await Promise.all([
+      generateRoomImage(brief.imagePrompt),
+      generateShoppingList(input, brief),
+    ]);
 
-  return {
-    designSummary: {
-      title: brief.title,
-      description: brief.description,
-      palette: brief.palette,
-      keyPieces: brief.keyPieces,
-    },
-    imageUrl,
-    shoppingList,
-  };
+    return {
+      designSummary: {
+        title: brief.title,
+        description: brief.description,
+        palette: brief.palette,
+        keyPieces: brief.keyPieces,
+      },
+      imageUrl,
+      shoppingList,
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
 }

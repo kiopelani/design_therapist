@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { generateDesign } from "@/lib/openai";
 import type { GenerateRequest } from "@/lib/types";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateRequest;

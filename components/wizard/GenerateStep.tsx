@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { WizardData } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 
@@ -12,7 +13,7 @@ function ReviewBlock({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-stone-200/60 bg-white/50 p-5">

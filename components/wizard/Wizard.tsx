@@ -33,13 +33,23 @@ export function Wizard() {
         body: JSON.stringify(wizardData),
       });
 
-      const data = await response.json();
+      const data = (await response.json().catch(() => null)) as
+        | GenerateResponse
+        | { error?: string }
+        | null;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate design");
+      if (!response.ok || !data) {
+        throw new Error(
+          (data && "error" in data && data.error) ||
+            "Failed to generate design",
+        );
       }
 
-      setResult(data as GenerateResponse);
+      if (!("designSummary" in data) || !("imageUrl" in data)) {
+        throw new Error("Unexpected response from server");
+      }
+
+      setResult(data);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",

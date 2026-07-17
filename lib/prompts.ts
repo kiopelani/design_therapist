@@ -21,7 +21,7 @@ Respond with ONLY valid JSON matching this schema:
   "palette": ["color1", "color2", "color3", "color4"],
   "keyPieces": ["furniture or decor item 1", "item 2", "item 3", "item 4", "item 5"],
   "layoutNotes": "brief layout and placement guidance",
-  "imagePrompt": "detailed DALL-E prompt for a photorealistic interior design photo of this room, wide angle, natural lighting, professionally styled, no people"
+  "imagePrompt": "detailed image generation prompt for a photorealistic interior design photo of this room, wide angle, natural lighting, professionally styled, no people"
 }`;
 }
 

@@ -8,18 +8,29 @@ interface DesignResultProps {
 }
 
 export function DesignResult({ imageUrl, summary }: DesignResultProps) {
+  const isDataUrl = imageUrl.startsWith("data:");
+
   return (
     <div className="space-y-6">
       <Card padding="sm" className="overflow-hidden p-3 sm:p-4">
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-stone-100">
-          <Image
-            src={imageUrl}
-            alt={summary.title}
-            fill
-            className="object-cover"
-            unoptimized
-            priority
-          />
+          {isDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt={summary.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <Image
+              src={imageUrl}
+              alt={summary.title}
+              fill
+              className="object-cover"
+              unoptimized
+              priority
+            />
+          )}
         </div>
       </Card>
 
