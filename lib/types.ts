@@ -1,9 +1,19 @@
 export type RoomSize = "small" | "medium" | "large";
+export type SizeMode = "approximate" | "custom";
+export type DimensionUnit = "ft" | "m";
 export type Budget = "low" | "medium" | "high";
+
+export interface CustomDimensions {
+  length: string;
+  width: string;
+  unit: DimensionUnit;
+}
 
 export interface RoomInput {
   type: string;
+  sizeMode: SizeMode;
   size: RoomSize;
+  customDimensions: CustomDimensions;
   constraints: string;
 }
 
@@ -79,7 +89,13 @@ export const STYLE_OPTIONS = [
 export const DEFAULT_WIZARD_DATA: WizardData = {
   room: {
     type: "Living Room",
+    sizeMode: "approximate",
     size: "medium",
+    customDimensions: {
+      length: "",
+      width: "",
+      unit: "ft",
+    },
     constraints: "",
   },
   style: {
@@ -89,3 +105,30 @@ export const DEFAULT_WIZARD_DATA: WizardData = {
     budget: "medium",
   },
 };
+
+const APPROXIMATE_SIZE_LABELS: Record<RoomSize, string> = {
+  small: "Small (under 120 sq ft)",
+  medium: "Medium (120–250 sq ft)",
+  large: "Large (250+ sq ft)",
+};
+
+export function getRoomSizeDescription(room: RoomInput): string {
+  if (room.sizeMode === "custom") {
+    const { length, width, unit } = room.customDimensions;
+    if (length && width) {
+      return `${length} × ${width} ${unit}`;
+    }
+    return "Custom dimensions";
+  }
+
+  return APPROXIMATE_SIZE_LABELS[room.size];
+}
+
+export function hasValidRoomSize(room: RoomInput): boolean {
+  if (room.sizeMode === "approximate") {
+    return true;
+  }
+
+  const { length, width } = room.customDimensions;
+  return Boolean(length.trim() && width.trim());
+}

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { WizardData } from "@/lib/types";
+import { getRoomSizeDescription } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 
 interface GenerateStepProps {
@@ -48,8 +49,8 @@ export function GenerateStep({ data, isLoading, error }: GenerateStepProps) {
             </div>
             <div className="flex justify-between gap-4 border-b border-stone-100 py-2.5">
               <dt className="text-stone-500">Size</dt>
-              <dd className="font-medium capitalize text-stone-900">
-                {data.room.size}
+              <dd className="text-right font-medium text-stone-900">
+                {getRoomSizeDescription(data.room)}
               </dd>
             </div>
             {data.room.constraints && (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { GenerateResponse, WizardData } from "@/lib/types";
-import { DEFAULT_WIZARD_DATA } from "@/lib/types";
+import { DEFAULT_WIZARD_DATA, hasValidRoomSize } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { RoomStep } from "@/components/wizard/RoomStep";
@@ -20,6 +20,7 @@ export function Wizard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canProceedFromRoom = hasValidRoomSize(wizardData.room);
   const canProceedFromStyle = wizardData.style.styles.length > 0;
 
   async function handleGenerate() {
@@ -136,7 +137,10 @@ export function Wizard() {
         {step < 2 ? (
           <Button
             onClick={() => setStep(step + 1)}
-            disabled={step === 1 && !canProceedFromStyle}
+            disabled={
+              (step === 0 && !canProceedFromRoom) ||
+              (step === 1 && !canProceedFromStyle)
+            }
           >
             Continue
           </Button>

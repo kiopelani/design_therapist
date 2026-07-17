@@ -1,4 +1,5 @@
 import type { GenerateRequest } from "./types";
+import { getRoomSizeDescription } from "./types";
 
 export function buildDesignBriefPrompt(input: GenerateRequest): string {
   const { room, style } = input;
@@ -6,7 +7,7 @@ export function buildDesignBriefPrompt(input: GenerateRequest): string {
   return `You are an expert interior designer. Create a customized room design brief based on the client's inputs.
 
 Room type: ${room.type}
-Room size: ${room.size}
+Room size: ${getRoomSizeDescription(room)}
 Constraints: ${room.constraints || "None specified"}
 
 Style preferences: ${style.styles.join(", ") || "Open to suggestions"}
@@ -48,7 +49,7 @@ Overview: ${brief.description}
 Palette: ${brief.palette.join(", ")}
 Key pieces: ${brief.keyPieces.join(", ")}
 Layout notes: ${brief.layoutNotes}
-Room: ${input.room.type} (${input.room.size})
+Room: ${input.room.type} (${getRoomSizeDescription(input.room)})
 Budget guidance: ${budgetGuidance}
 Constraints: ${input.room.constraints || "None"}
 
