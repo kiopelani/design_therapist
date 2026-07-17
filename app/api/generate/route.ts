@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateDesign } from "@/lib/openai";
 import type { GenerateRequest } from "@/lib/types";
-import { hasValidRoomSize } from "@/lib/types";
+import { hasValidRoomSize, hasValidStyleSelection } from "@/lib/types";
 
 export const maxDuration = 60;
 
@@ -9,9 +9,16 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateRequest;
 
-    if (!body.room?.type || !body.style?.styles?.length) {
+    if (!body.room?.type) {
       return NextResponse.json(
-        { error: "Room type and at least one style are required." },
+        { error: "Room type is required." },
+        { status: 400 },
+      );
+    }
+
+    if (!hasValidStyleSelection(body.style)) {
+      return NextResponse.json(
+        { error: "Please select at least one inspiration photo." },
         { status: 400 },
       );
     }

@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import type { GenerateResponse, WizardData } from "@/lib/types";
-import { DEFAULT_WIZARD_DATA, hasValidRoomSize } from "@/lib/types";
+import {
+  DEFAULT_WIZARD_DATA,
+  hasValidRoomSize,
+  hasValidStyleSelection,
+} from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { RoomStep } from "@/components/wizard/RoomStep";
@@ -21,7 +25,7 @@ export function Wizard() {
   const [error, setError] = useState<string | null>(null);
 
   const canProceedFromRoom = hasValidRoomSize(wizardData.room);
-  const canProceedFromStyle = wizardData.style.styles.length > 0;
+  const canProceedFromStyle = hasValidStyleSelection(wizardData.style);
 
   async function handleGenerate() {
     setIsLoading(true);
@@ -111,6 +115,7 @@ export function Wizard() {
 
         {step === 1 && (
           <StyleStep
+            roomType={wizardData.room.type}
             data={wizardData.style}
             onChange={(style) => setWizardData({ ...wizardData, style })}
           />

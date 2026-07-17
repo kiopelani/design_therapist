@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 import type { WizardData } from "@/lib/types";
 import { getRoomSizeDescription } from "@/lib/types";
@@ -63,32 +64,37 @@ export function GenerateStep({ data, isLoading, error }: GenerateStepProps) {
         </ReviewBlock>
 
         <ReviewBlock title="Style">
-          <dl className="space-y-2.5 text-sm">
-            <div className="flex justify-between gap-4 border-b border-stone-100 py-2.5">
-              <dt className="text-stone-500">Styles</dt>
-              <dd className="text-right font-medium text-stone-900">
-                {data.style.styles.join(", ")}
-              </dd>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2">
+              {data.style.selectedInspirations.map((inspiration) => (
+                <div
+                  key={inspiration.id}
+                  className="overflow-hidden rounded-xl border border-stone-200/60"
+                >
+                  <div className="relative aspect-[4/3] bg-stone-100">
+                    <Image
+                      src={inspiration.imageUrl}
+                      alt={inspiration.label}
+                      fill
+                      className="object-cover"
+                      sizes="120px"
+                    />
+                  </div>
+                  <p className="line-clamp-2 p-2 text-xs text-stone-700">
+                    {inspiration.label}
+                  </p>
+                </div>
+              ))}
             </div>
-            {data.style.colors && (
-              <div className="flex justify-between gap-4 border-b border-stone-100 py-2.5">
-                <dt className="text-stone-500">Colors</dt>
-                <dd className="text-right text-stone-800">{data.style.colors}</dd>
+            <dl className="space-y-2.5 text-sm">
+              <div className="flex justify-between gap-4 py-2.5">
+                <dt className="text-stone-500">Budget</dt>
+                <dd className="font-medium capitalize text-stone-900">
+                  {data.style.budget}
+                </dd>
               </div>
-            )}
-            {data.style.mood && (
-              <div className="flex justify-between gap-4 border-b border-stone-100 py-2.5">
-                <dt className="text-stone-500">Mood</dt>
-                <dd className="text-right text-stone-800">{data.style.mood}</dd>
-              </div>
-            )}
-            <div className="flex justify-between gap-4 py-2.5">
-              <dt className="text-stone-500">Budget</dt>
-              <dd className="font-medium capitalize text-stone-900">
-                {data.style.budget}
-              </dd>
-            </div>
-          </dl>
+            </dl>
+          </div>
         </ReviewBlock>
       </div>
 

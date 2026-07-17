@@ -1,3 +1,4 @@
+import { formatStyleInspirationForPrompt } from "./style-inspiration";
 import type { GenerateRequest } from "./types";
 import { getRoomSizeDescription } from "./types";
 
@@ -10,9 +11,8 @@ Room type: ${room.type}
 Room size: ${getRoomSizeDescription(room)}
 Constraints: ${room.constraints || "None specified"}
 
-Style preferences: ${style.styles.join(", ") || "Open to suggestions"}
-Color preferences: ${style.colors || "Open to suggestions"}
-Desired mood: ${style.mood || "Comfortable and inviting"}
+Style inspiration (rooms the client selected):
+${formatStyleInspirationForPrompt(style.selectedInspirations)}
 Budget: ${style.budget}
 
 Respond with ONLY valid JSON matching this schema:
@@ -50,6 +50,8 @@ Palette: ${brief.palette.join(", ")}
 Key pieces: ${brief.keyPieces.join(", ")}
 Layout notes: ${brief.layoutNotes}
 Room: ${input.room.type} (${getRoomSizeDescription(input.room)})
+Style inspiration:
+${formatStyleInspirationForPrompt(input.style.selectedInspirations)}
 Budget guidance: ${budgetGuidance}
 Constraints: ${input.room.constraints || "None"}
 

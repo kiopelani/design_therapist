@@ -1,22 +1,101 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import type { StyleInput } from "@/lib/types";
-import { STYLE_OPTIONS } from "@/lib/types";
+import { MAX_INSPIRATION_SELECTION } from "@/lib/types";
+import type { InspirationPhoto } from "@/lib/style-inspiration";
+import { toSelectedInspiration } from "@/lib/style-inspiration";
 import { Card } from "@/components/ui/Card";
+import { StyleInspirationCard } from "@/components/wizard/StyleInspirationCard";
 
 interface StyleStepProps {
+  roomType: string;
   data: StyleInput;
   onChange: (data: StyleInput) => void;
 }
 
-export function StyleStep({ data, onChange }: StyleStepProps) {
-  function toggleStyle(style: string) {
-    const isSelected = data.styles.includes(style);
-    const styles = isSelected
-      ? data.styles.filter((s) => s !== style)
-      : data.styles.length < 2
-        ? [...data.styles, style]
-        : [data.styles[1], style];
+function PhotoSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-stone-200/80">
+      <div className="aspect-[4/3] animate-pulse bg-stone-200" />
+      <div className="space-y-2 p-3">
+        <div className="h-4 w-3/4 animate-pulse rounded bg-stone-200" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-stone-100" />
+      </div>
+    </div>
+  );
+}
 
-    onChange({ ...data, styles });
+export function StyleStep({ roomType, data, onChange }: StyleStepProps) {
+  const [photos, setPhotos] = useState<InspirationPhoto[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchPhotos = useCallback(
+    async (q: string) => {
+      setIsLoading(true);
+      setFetchError(null);
+
+      try {
+        const params = new URLSearchParams();
+        if (q.trim()) {
+          params.set("q", q.trim());
+        } else {
+          params.set("roomType", roomType);
+        }
+
+        const response = await fetch(`/api/inspiration/search?${params.toString()}`);
+        const result = (await response.json()) as {
+          photos?: InspirationPhoto[];
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to load inspiration photos");
+        }
+
+        setPhotos(result.photos ?? []);
+      } catch (err) {
+        setFetchError(
+          err instanceof Error ? err.message : "Failed to load inspiration photos",
+        );
+        setPhotos([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [roomType],
+  );
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchPhotos(searchQuery);
+    }, searchQuery ? 400 : 0);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, fetchPhotos]);
+
+  function toggleSelection(photo: InspirationPhoto) {
+    const isSelected = data.selectedInspirations.some((item) => item.id === photo.id);
+
+    if (isSelected) {
+      onChange({
+        ...data,
+        selectedInspirations: data.selectedInspirations.filter(
+          (item) => item.id !== photo.id,
+        ),
+      });
+      return;
+    }
+
+    const selected = toSelectedInspiration(photo);
+    const inspirations =
+      data.selectedInspirations.length < MAX_INSPIRATION_SELECTION
+        ? [...data.selectedInspirations, selected]
+        : [...data.selectedInspirations.slice(1), selected];
+
+    onChange({ ...data, selectedInspirations: inspirations });
   }
 
   return (
@@ -25,58 +104,70 @@ export function StyleStep({ data, onChange }: StyleStepProps) {
         Step 2
       </p>
       <h2 className="text-display mt-2 text-3xl text-stone-900">
-        What&apos;s your style?
+        Which rooms inspire you?
       </h2>
       <p className="mt-3 text-stone-600">
-        Pick up to two styles that speak to you.
+        Pick up to {MAX_INSPIRATION_SELECTION} rooms that match the look you want. We&apos;ve loaded ideas
+        for your {roomType.toLowerCase()}.
       </p>
 
       <div className="mt-8 space-y-7">
         <div>
-          <span className="field-label">Style preferences</span>
-          <div className="flex flex-wrap gap-2.5">
-            {STYLE_OPTIONS.map((style) => {
-              const selected = data.styles.includes(style);
-              return (
-                <button
-                  key={style}
-                  type="button"
-                  onClick={() => toggleStyle(style)}
-                  className={`style-chip ${selected ? "style-chip-selected" : ""}`}
-                >
-                  {style}
-                </button>
-              );
-            })}
+          <label htmlFor="style-search" className="field-label">
+            Refine your search
+          </label>
+          <input
+            id="style-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder='e.g. "bohemian cozy", "modern minimal"'
+            className="field-input"
+          />
+        </div>
+
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="field-label mb-0">
+              Inspiration photos
+            </span>
+            <span className="text-xs text-stone-500">
+              {data.selectedInspirations.length}/{MAX_INSPIRATION_SELECTION} selected
+            </span>
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="colors" className="field-label">
-            Color preferences
-          </label>
-          <input
-            id="colors"
-            type="text"
-            value={data.colors}
-            onChange={(e) => onChange({ ...data, colors: e.target.value })}
-            placeholder='e.g. "Warm neutrals with sage green accents"'
-            className="field-input"
-          />
-        </div>
+          {fetchError && (
+            <div className="mb-4 rounded-2xl border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+              {fetchError}
+            </div>
+          )}
 
-        <div>
-          <label htmlFor="mood" className="field-label">
-            Desired mood
-          </label>
-          <input
-            id="mood"
-            type="text"
-            value={data.mood}
-            onChange={(e) => onChange({ ...data, mood: e.target.value })}
-            placeholder='e.g. "Calm and cozy", "Bright and energizing"'
-            className="field-input"
-          />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {isLoading
+              ? Array.from({ length: 8 }).map((_, index) => (
+                  <PhotoSkeleton key={index} />
+                ))
+              : photos.map((photo) => (
+                  <StyleInspirationCard
+                    key={photo.id}
+                    photo={photo}
+                    selected={data.selectedInspirations.some(
+                      (item) => item.id === photo.id,
+                    )}
+                    onToggle={() => toggleSelection(photo)}
+                  />
+                ))}
+          </div>
+
+          {!isLoading && !fetchError && photos.length === 0 && (
+            <p className="mt-4 text-center text-sm text-stone-500">
+              No photos found. Try a different search term.
+            </p>
+          )}
+
+          <p className="mt-4 text-center text-xs text-stone-400">
+            Photos from Unsplash
+          </p>
         </div>
 
         <div>

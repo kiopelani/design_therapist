@@ -17,10 +17,16 @@ export interface RoomInput {
   constraints: string;
 }
 
+export interface SelectedInspiration {
+  id: string;
+  imageUrl: string;
+  label: string;
+  styleDescription: string;
+  credit: string;
+}
+
 export interface StyleInput {
-  styles: string[];
-  colors: string;
-  mood: string;
+  selectedInspirations: SelectedInspiration[];
   budget: Budget;
 }
 
@@ -63,6 +69,8 @@ export interface WizardData {
   style: StyleInput;
 }
 
+export const MAX_INSPIRATION_SELECTION = 3;
+
 export const ROOM_TYPES = [
   "Bedroom",
   "Living Room",
@@ -71,19 +79,6 @@ export const ROOM_TYPES = [
   "Nursery",
   "Bathroom",
   "Kitchen",
-] as const;
-
-export const STYLE_OPTIONS = [
-  "Minimal",
-  "Bohemian",
-  "Mid-Century Modern",
-  "Scandinavian",
-  "Industrial",
-  "Coastal",
-  "Farmhouse",
-  "Art Deco",
-  "Japandi",
-  "Eclectic",
 ] as const;
 
 export const DEFAULT_WIZARD_DATA: WizardData = {
@@ -99,9 +94,7 @@ export const DEFAULT_WIZARD_DATA: WizardData = {
     constraints: "",
   },
   style: {
-    styles: [],
-    colors: "",
-    mood: "",
+    selectedInspirations: [],
     budget: "medium",
   },
 };
@@ -131,4 +124,8 @@ export function hasValidRoomSize(room: RoomInput): boolean {
 
   const { length, width } = room.customDimensions;
   return Boolean(length.trim() && width.trim());
+}
+
+export function hasValidStyleSelection(style: StyleInput): boolean {
+  return style.selectedInspirations.length >= 1;
 }

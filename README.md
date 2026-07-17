@@ -5,7 +5,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 ## Features
 
 - **Room intake** — room type, size, and constraints
-- **Style preferences** — pick styles, colors, mood, and budget
+- **Style inspiration** — search Unsplash for room photos, pick up to 3, and set budget
 - **AI-generated design** — room image (GPT Image) plus written design summary
 - **Shopping list** — categorized items with optional price estimates
 
@@ -13,6 +13,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 
 - Node.js 18+
 - An [OpenAI API key](https://platform.openai.com/api-keys) with access to GPT-4o and GPT Image (`gpt-image-1`)
+- An [Unsplash access key](https://unsplash.com/developers) for style inspiration search
 
 ## Setup
 
@@ -28,7 +29,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
    cp .env.example .env.local
    ```
 
-   Edit `.env.local` and set `OPENAI_API_KEY`.
+   Edit `.env.local` and set `OPENAI_API_KEY` and `UNSPLASH_ACCESS_KEY`.
 
 3. Start the development server:
 
@@ -41,7 +42,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 ## How it works
 
 1. User describes their room (type, size, constraints)
-2. User selects style preferences and budget
+2. User picks inspiration photos from Unsplash and sets budget
 3. The app calls GPT-4o to create a design brief, GPT Image to generate a room image, and GPT-4o again to produce a shopping list
 4. Results are shown in a single session — no accounts required
 
@@ -57,6 +58,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 | Variable | Required | Description |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
+| `UNSPLASH_ACCESS_KEY` | Yes | Your Unsplash API access key |
 
 ## Notes
 
