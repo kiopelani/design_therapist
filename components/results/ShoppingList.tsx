@@ -40,24 +40,43 @@ export function ShoppingList({ items }: ShoppingListProps) {
               <span className="text-xs text-stone-400">{categoryItems.length}</span>
             </div>
             <ul className="mt-4 space-y-3">
-              {categoryItems.map((item, index) => (
-                <li
-                  key={`${category}-${index}`}
-                  className="flex items-start justify-between gap-4 rounded-2xl border border-stone-200/60 bg-white/50 px-4 py-4"
-                >
-                  <div>
-                    <p className="font-medium text-stone-900">{item.item}</p>
-                    {item.notes && (
-                      <p className="mt-1 text-sm text-stone-500">{item.notes}</p>
+              {categoryItems.map((item, index) => {
+                const displayPrice = item.productPrice ?? item.estPrice;
+
+                return (
+                  <li
+                    key={`${category}-${index}`}
+                    className="flex items-start justify-between gap-4 rounded-2xl border border-stone-200/60 bg-white/50 px-4 py-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-stone-900">{item.item}</p>
+                      {item.notes && (
+                        <p className="mt-1 text-sm text-stone-500">{item.notes}</p>
+                      )}
+                      {item.retailer && item.productUrl && (
+                        <p className="mt-2 text-sm text-stone-500">
+                          via {item.retailer}
+                        </p>
+                      )}
+                      {item.productUrl && (
+                        <a
+                          href={item.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex text-sm font-medium text-stone-900 underline-offset-2 hover:underline"
+                        >
+                          Shop
+                        </a>
+                      )}
+                    </div>
+                    {displayPrice && (
+                      <span className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
+                        {displayPrice}
+                      </span>
                     )}
-                  </div>
-                  {item.estPrice && (
-                    <span className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
-                      {item.estPrice}
-                    </span>
-                  )}
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}

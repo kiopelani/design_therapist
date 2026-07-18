@@ -7,13 +7,14 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 - **Room intake** — room type, size, and constraints
 - **Style inspiration** — search Unsplash for room photos, pick up to 3, and set budget
 - **AI-generated design** — room image (GPT Image) plus written design summary
-- **Shopping list** — categorized items with optional price estimates
+- **Shopping list** — categorized items with budget-aware price estimates and optional live purchase links
 
 ## Prerequisites
 
 - Node.js 18+
 - An [OpenAI API key](https://platform.openai.com/api-keys) with access to GPT-4o and GPT Image (`gpt-image-1`)
 - An [Unsplash access key](https://unsplash.com/developers) for style inspiration search
+- An optional [SerpAPI key](https://serpapi.com/) for live Google Shopping purchase links
 
 ## Setup
 
@@ -29,7 +30,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
    cp .env.example .env.local
    ```
 
-   Edit `.env.local` and set `OPENAI_API_KEY` and `UNSPLASH_ACCESS_KEY`.
+   Edit `.env.local` and set `OPENAI_API_KEY` and `UNSPLASH_ACCESS_KEY`. Optionally set `SERPAPI_API_KEY` for live shopping links.
 
 3. Start the development server:
 
@@ -43,7 +44,7 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 
 1. User describes their room (type, size, constraints)
 2. User picks inspiration photos from Unsplash and sets budget
-3. The app calls GPT-4o to create a design brief, GPT Image to generate a room image, and GPT-4o again to produce a shopping list
+3. The app calls GPT-4o to create a design brief, GPT Image to generate a room image, GPT-4o to produce a budget-aware shopping list, and SerpAPI (when configured) to attach live purchase links
 4. Results are shown in a single session — no accounts required
 
 ## Scripts
@@ -59,9 +60,10 @@ A web app that helps you decorate a room with AI. Complete a short wizard about 
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
 | `UNSPLASH_ACCESS_KEY` | Yes | Your Unsplash API access key |
+| `SERPAPI_API_KEY` | No | SerpAPI key for live Google Shopping purchase links |
 
 ## Notes
 
-- Generation typically takes 20–45 seconds
-- Shopping list items are descriptive recommendations, not live product links
+- Generation typically takes 30–60 seconds
+- Shopping list links require `SERPAPI_API_KEY`; without it, items are shown without purchase links
 - Designs are not persisted between sessions
