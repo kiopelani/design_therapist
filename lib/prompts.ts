@@ -146,11 +146,28 @@ export function buildShoppingListPrompt(
   combinedStyleSummary: string,
   roomAnalysis: RoomAnalysisResult,
 ): string {
-  const budgetGuidance = {
-    low: "budget-friendly, under $100 per item where possible",
-    medium: "mid-range quality and pricing",
-    high: "premium and designer-quality items",
-  }[input.style.budget];
+  const budget = input.style.budget;
+  const budgetRules = {
+    low: {
+      label: "Low budget",
+      guidance:
+        "Budget retailers (IKEA, Target, Amazon basics). Prioritize value and affordability.",
+      estPriceRule: "Each item must be under $100. Use estPrice ranges like $25-$80.",
+      searchHint: 'Include terms like "affordable" or "budget" in searchQuery.',
+    },
+    medium: {
+      label: "Medium budget",
+      guidance: "Mid-range brands. Balance quality and cost.",
+      estPriceRule: "Each item must be $50-$400. Use estPrice ranges like $80-$250.",
+      searchHint: "Use neutral product search terms without budget or luxury modifiers.",
+    },
+    high: {
+      label: "High budget",
+      guidance: "Designer and premium brands. Quality over savings.",
+      estPriceRule: "Each item must be $150 or more. Use estPrice ranges like $200-$800.",
+      searchHint: 'Include terms like "designer" or "premium" in searchQuery.',
+    },
+  }[budget];
   const roomPhotoSection = formatRoomAnalysisForPrompt(roomAnalysis);
 
   return `You are an expert interior designer creating a shopping list for a room makeover.
@@ -166,21 +183,26 @@ ${roomPhotoSection}
 
 Style inspiration (with visual analysis):
 ${formatEnrichedInspirationForPrompt(enriched, combinedStyleSummary)}
-Budget guidance: ${budgetGuidance}
+
+Selected budget: ${budgetRules.label}
+Budget guidance: ${budgetRules.guidance}
+Price rule: ${budgetRules.estPriceRule}
+Search query hint: ${budgetRules.searchHint}
 Constraints: ${input.room.constraints || "None"}
 
 When a room photo analysis is provided, only list items needed for the makeover — skip furniture the client should keep, and note placement relative to the actual room.
 
-Create a practical shopping list with 10-16 items covering furniture, lighting, textiles, decor, and finishing touches. Respect the budget and constraints.
+Create a practical shopping list with 10-16 items covering furniture, lighting, textiles, decor, and finishing touches. Every item must respect the selected budget tier and price rule.
 
 Respond with ONLY valid JSON matching this schema:
 {
   "shoppingList": [
     {
       "category": "Furniture | Lighting | Textiles | Decor | Paint & Finishes | Storage",
-      "item": "specific product description",
+      "item": "specific product description for display",
+      "searchQuery": "concise Google Shopping search string for this item",
       "notes": "optional sizing or placement note",
-      "estPrice": "optional estimated price range like $50-$80"
+      "estPrice": "estimated price range that fits the selected budget tier"
     }
   ]
 }`;

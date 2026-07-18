@@ -9,6 +9,7 @@ import {
   enhanceImagePromptWithRoom,
 } from "./prompts";
 import { dataUrlToFile } from "./image-data";
+import { enrichShoppingListWithLinks } from "./shopping-links";
 import type {
   DesignBrief,
   EnrichedInspiration,
@@ -380,7 +381,7 @@ export async function generateDesign(
         enriched,
         combinedStyleSummary,
         roomAnalysis,
-      ),
+      ).then((items) => enrichShoppingListWithLinks(items, input.style.budget)),
     ]);
 
     return {
