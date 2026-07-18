@@ -59,6 +59,11 @@ export interface GenerateRequest {
   style: StyleInput;
 }
 
+export interface RefineDesignRequest extends GenerateRequest {
+  feedback: string;
+  previousDesign: DesignSummary;
+}
+
 export interface DesignSummary {
   title: string;
   description: string;
@@ -183,6 +188,11 @@ export function hasValidRoomSize(room: RoomInput): boolean {
 
 export function hasValidStyleSelection(style: StyleInput): boolean {
   return style.selectedInspirations.length >= 1;
+}
+
+export function hasValidFeedback(feedback: string): boolean {
+  const trimmed = feedback.trim();
+  return trimmed.length >= 10 && trimmed.length <= 1000;
 }
 
 export function isValidRoomPhoto(dataUrl: string): boolean {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { GenerateResponse, WizardData } from "@/lib/types";
+import type { GenerateResponse, RefineDesignRequest, WizardData } from "@/lib/types";
 import {
   DEFAULT_WIZARD_DATA,
   hasValidRoomSize,
@@ -13,6 +13,7 @@ import { RoomStep } from "@/components/wizard/RoomStep";
 import { StyleStep } from "@/components/wizard/StyleStep";
 import { GenerateStep } from "@/components/wizard/GenerateStep";
 import { DesignResult } from "@/components/results/DesignResult";
+import { DesignFeedback } from "@/components/results/DesignFeedback";
 import { ShoppingList } from "@/components/results/ShoppingList";
 
 const STEP_LABELS = ["Room", "Style", "Design"];
@@ -22,6 +23,8 @@ export function Wizard() {
   const [wizardData, setWizardData] = useState<WizardData>(DEFAULT_WIZARD_DATA);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canProceedFromRoom = hasValidRoomSize(wizardData.room);
@@ -64,12 +67,62 @@ export function Wizard() {
     }
   }
 
+  async function handleRefine(feedback: string) {
+    if (!result) {
+      return;
+    }
+
+    setIsRefining(true);
+    setRefineError(null);
+
+    try {
+      const payload: RefineDesignRequest = {
+        ...wizardData,
+        feedback,
+        previousDesign: result.designSummary,
+      };
+
+      const response = await fetch("/api/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | GenerateResponse
+        | { error?: string }
+        | null;
+
+      if (!response.ok || !data) {
+        throw new Error(
+          (data && "error" in data && data.error) ||
+            "Failed to refine design",
+        );
+      }
+
+      if (!("designSummary" in data) || !("imageUrl" in data)) {
+        throw new Error("Unexpected response from server");
+      }
+
+      setResult(data);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setRefineError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setIsRefining(false);
+    }
+  }
+
   function handleStartOver() {
     setStep(0);
     setWizardData(DEFAULT_WIZARD_DATA);
     setResult(null);
     setError(null);
+    setRefineError(null);
     setIsLoading(false);
+    setIsRefining(false);
   }
 
   if (result) {
@@ -87,9 +140,19 @@ export function Wizard() {
           imageUrl={result.imageUrl}
           summary={result.designSummary}
         />
+        <DesignFeedback
+          key={result.imageUrl}
+          isRefining={isRefining}
+          error={refineError}
+          onRefine={handleRefine}
+        />
         <ShoppingList items={result.shoppingList} />
         <div className="flex justify-center pb-4">
-          <Button variant="secondary" onClick={handleStartOver}>
+          <Button
+            variant="secondary"
+            onClick={handleStartOver}
+            disabled={isRefining}
+          >
             Start over
           </Button>
         </div>

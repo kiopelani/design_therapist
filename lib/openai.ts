@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import {
   buildDesignBriefPrompt,
+  buildRefineDesignBriefPrompt,
   buildRoomEditPrompt,
   buildRoomVisionAnalysisPrompt,
   buildShoppingListPrompt,
@@ -12,6 +13,7 @@ import { dataUrlToFile } from "./image-data";
 import { enrichShoppingListWithLinks } from "./shopping-links";
 import type {
   DesignBrief,
+  DesignSummary,
   EnrichedInspiration,
   GenerateRequest,
   GenerateResponse,
@@ -233,6 +235,42 @@ export async function generateDesignBrief(
   return parseJson<DesignBrief>(content);
 }
 
+export async function generateRefinedDesignBrief(
+  input: GenerateRequest,
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
+  previousDesign: DesignSummary,
+  feedback: string,
+): Promise<DesignBrief> {
+  const client = getClient();
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "user",
+        content: buildRefineDesignBriefPrompt(
+          input,
+          enriched,
+          combinedStyleSummary,
+          roomAnalysis,
+          previousDesign,
+          feedback,
+        ),
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.8,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No design brief returned from AI");
+  }
+
+  return parseJson<DesignBrief>(content);
+}
+
 export async function generateRoomImage(imagePrompt: string): Promise<string> {
   const client = getClient();
   let lastError: unknown;
@@ -306,6 +344,7 @@ export async function generateShoppingList(
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
   roomAnalysis: RoomAnalysisResult,
+  feedback?: string,
 ): Promise<ShoppingListItem[]> {
   const client = getClient();
   const response = await client.chat.completions.create({
@@ -319,6 +358,7 @@ export async function generateShoppingList(
           enriched,
           combinedStyleSummary,
           roomAnalysis,
+          feedback,
         ),
       },
     ],
@@ -339,21 +379,69 @@ export async function generateShoppingList(
   return parsed.shoppingList;
 }
 
+async function runVisionAnalysis(input: GenerateRequest) {
+  return Promise.all([
+    analyzeInspirationPhotos(
+      input.style.selectedInspirations,
+      input.room.type,
+    ),
+    analyzeRoomPhoto(
+      input.room.roomPhoto,
+      input.room.type,
+      input.room.constraints,
+    ),
+  ]);
+}
+
+async function buildDesignFromBrief(
+  input: GenerateRequest,
+  brief: DesignBrief,
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
+  feedback?: string,
+): Promise<GenerateResponse> {
+  const imagePromise = input.room.roomPhoto
+    ? editRoomImage(
+        input.room.roomPhoto,
+        buildRoomEditPrompt(brief, roomAnalysis, input.room),
+      ).catch(() =>
+        generateRoomImage(
+          enhanceImagePromptWithRoom(brief.imagePrompt, roomAnalysis),
+        ),
+      )
+    : generateRoomImage(brief.imagePrompt);
+
+  const [imageUrl, shoppingList] = await Promise.all([
+    imagePromise,
+    generateShoppingList(
+      input,
+      brief,
+      enriched,
+      combinedStyleSummary,
+      roomAnalysis,
+      feedback,
+    ).then((items) => enrichShoppingListWithLinks(items, input.style.budget)),
+  ]);
+
+  return {
+    designSummary: {
+      title: brief.title,
+      description: brief.description,
+      palette: brief.palette,
+      keyPieces: brief.keyPieces,
+    },
+    imageUrl,
+    shoppingList,
+  };
+}
+
 export async function generateDesign(
   input: GenerateRequest,
 ): Promise<GenerateResponse> {
   try {
-    const [{ enriched, combinedStyleSummary }, roomAnalysis] = await Promise.all([
-      analyzeInspirationPhotos(
-        input.style.selectedInspirations,
-        input.room.type,
-      ),
-      analyzeRoomPhoto(
-        input.room.roomPhoto,
-        input.room.type,
-        input.room.constraints,
-      ),
-    ]);
+    const [{ enriched, combinedStyleSummary }, roomAnalysis] =
+      await runVisionAnalysis(input);
 
     const brief = await generateDesignBrief(
       input,
@@ -362,38 +450,44 @@ export async function generateDesign(
       roomAnalysis,
     );
 
-    const imagePromise = input.room.roomPhoto
-      ? editRoomImage(
-          input.room.roomPhoto,
-          buildRoomEditPrompt(brief, roomAnalysis, input.room),
-        ).catch(() =>
-          generateRoomImage(
-            enhanceImagePromptWithRoom(brief.imagePrompt, roomAnalysis),
-          ),
-        )
-      : generateRoomImage(brief.imagePrompt);
+    return buildDesignFromBrief(
+      input,
+      brief,
+      enriched,
+      combinedStyleSummary,
+      roomAnalysis,
+    );
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
 
-    const [imageUrl, shoppingList] = await Promise.all([
-      imagePromise,
-      generateShoppingList(
-        input,
-        brief,
-        enriched,
-        combinedStyleSummary,
-        roomAnalysis,
-      ).then((items) => enrichShoppingListWithLinks(items, input.style.budget)),
-    ]);
+export async function refineDesign(
+  input: GenerateRequest,
+  previousDesign: DesignSummary,
+  feedback: string,
+): Promise<GenerateResponse> {
+  try {
+    const [{ enriched, combinedStyleSummary }, roomAnalysis] =
+      await runVisionAnalysis(input);
 
-    return {
-      designSummary: {
-        title: brief.title,
-        description: brief.description,
-        palette: brief.palette,
-        keyPieces: brief.keyPieces,
-      },
-      imageUrl,
-      shoppingList,
-    };
+    const brief = await generateRefinedDesignBrief(
+      input,
+      enriched,
+      combinedStyleSummary,
+      roomAnalysis,
+      previousDesign,
+      feedback,
+    );
+
+    return buildDesignFromBrief(
+      input,
+      brief,
+      enriched,
+      combinedStyleSummary,
+      roomAnalysis,
+      feedback,
+    );
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
