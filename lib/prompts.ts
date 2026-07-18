@@ -1,6 +1,7 @@
 import { formatEnrichedInspirationForPrompt } from "./style-inspiration";
 import type {
   DesignBrief,
+  DesignSummary,
   EnrichedInspiration,
   GenerateRequest,
   RoomAnalysisResult,
@@ -133,6 +134,51 @@ Respond with ONLY valid JSON matching this schema:
 }`;
 }
 
+export function buildRefineDesignBriefPrompt(
+  input: GenerateRequest,
+  enriched: EnrichedInspiration[],
+  combinedStyleSummary: string,
+  roomAnalysis: RoomAnalysisResult,
+  previousDesign: DesignSummary,
+  feedback: string,
+): string {
+  const { room, style } = input;
+  const roomPhotoSection = formatRoomAnalysisForPrompt(roomAnalysis);
+
+  return `You are an expert interior designer. The client reviewed a previous room design and wants revisions.
+
+Room type: ${room.type}
+Room size: ${getRoomSizeDescription(room)}
+Constraints: ${room.constraints || "None specified"}
+
+${roomPhotoSection}
+
+Style inspiration (rooms the client selected, with visual analysis):
+${formatEnrichedInspirationForPrompt(enriched, combinedStyleSummary)}
+Budget: ${style.budget}
+
+Previous design:
+- Title: ${previousDesign.title}
+- Overview: ${previousDesign.description}
+- Palette: ${previousDesign.palette.join(", ")}
+- Key pieces: ${previousDesign.keyPieces.join(", ")}
+
+Client feedback:
+${feedback.trim()}
+
+Revise the design brief to address the client's feedback while preserving original room constraints, budget, and architectural features from the room photo analysis (if provided). Keep what works from the previous design unless the feedback asks to change it.
+
+Respond with ONLY valid JSON matching this schema:
+{
+  "title": "short evocative design title",
+  "description": "2-3 sentence design overview",
+  "palette": ["color1", "color2", "color3", "color4"],
+  "keyPieces": ["furniture or decor item 1", "item 2", "item 3", "item 4", "item 5"],
+  "layoutNotes": "brief layout and placement guidance",
+  "imagePrompt": "detailed image generation prompt for a photorealistic interior design photo of this room, wide angle, natural lighting, professionally styled, no people"
+}`;
+}
+
 export function buildShoppingListPrompt(
   input: GenerateRequest,
   brief: {
@@ -145,6 +191,7 @@ export function buildShoppingListPrompt(
   enriched: EnrichedInspiration[],
   combinedStyleSummary: string,
   roomAnalysis: RoomAnalysisResult,
+  feedback?: string,
 ): string {
   const budget = input.style.budget;
   const budgetRules = {
@@ -189,7 +236,7 @@ Budget guidance: ${budgetRules.guidance}
 Price rule: ${budgetRules.estPriceRule}
 Search query hint: ${budgetRules.searchHint}
 Constraints: ${input.room.constraints || "None"}
-
+${feedback ? `\nClient feedback on the previous design: ${feedback.trim()}\n` : ""}
 When a room photo analysis is provided, only list items needed for the makeover — skip furniture the client should keep, and note placement relative to the actual room.
 
 Create a practical shopping list with 10-16 items covering furniture, lighting, textiles, decor, and finishing touches. Every item must respect the selected budget tier and price rule.
