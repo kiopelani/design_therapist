@@ -75,6 +75,7 @@ async function enrichItem(
       productUrl: match.productUrl,
       retailer: match.retailer,
       productPrice: match.productPrice,
+      ...(match.productImageUrl ? { productImageUrl: match.productImageUrl } : {}),
     };
   } catch {
     return item;

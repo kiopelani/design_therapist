@@ -8,6 +8,8 @@ interface SerpApiShoppingResult {
   source?: string;
   price?: string;
   extracted_price?: number;
+  serpapi_thumbnail?: string;
+  thumbnail?: string;
 }
 
 interface SerpApiShoppingResponse {
@@ -16,6 +18,14 @@ interface SerpApiShoppingResponse {
 
 export function getSerpApiKey(): string | null {
   return process.env.SERPAPI_API_KEY ?? null;
+}
+
+function parseProductImageUrl(result: SerpApiShoppingResult): string | undefined {
+  const url = result.serpapi_thumbnail ?? result.thumbnail;
+  if (!url?.startsWith("https://")) {
+    return undefined;
+  }
+  return url;
 }
 
 function normalizeResult(result: SerpApiShoppingResult): ProductSearchResult | null {
@@ -28,12 +38,15 @@ function normalizeResult(result: SerpApiShoppingResult): ProductSearchResult | n
     return null;
   }
 
+  const productImageUrl = parseProductImageUrl(result);
+
   return {
     productUrl: result.product_link,
     retailer: result.source?.trim() || "Google Shopping",
     productPrice: result.price?.trim() || `$${extractedPrice}`,
     productTitle: result.title.trim(),
     extractedPrice,
+    ...(productImageUrl ? { productImageUrl } : {}),
   };
 }
 

@@ -75,6 +75,7 @@ export interface ShoppingListItem {
   productUrl?: string;
   retailer?: string;
   productPrice?: string;
+  productImageUrl?: string;
 }
 
 export interface ProductSearchResult {
@@ -83,6 +84,7 @@ export interface ProductSearchResult {
   productPrice: string;
   productTitle: string;
   extractedPrice: number;
+  productImageUrl?: string;
 }
 
 export interface GenerateResponse {

@@ -46,8 +46,16 @@ export function ShoppingList({ items }: ShoppingListProps) {
                 return (
                   <li
                     key={`${category}-${index}`}
-                    className="flex items-start justify-between gap-4 rounded-2xl border border-stone-200/60 bg-white/50 px-4 py-4"
+                    className="flex items-start gap-4 rounded-2xl border border-stone-200/60 bg-white/50 px-4 py-4"
                   >
+                    {item.productUrl && item.productImageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.productImageUrl}
+                        alt={item.item}
+                        className="h-20 w-20 shrink-0 rounded-xl bg-stone-100 object-cover"
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-stone-900">{item.item}</p>
                       {item.notes && (
