@@ -69,8 +69,22 @@ export interface DesignSummary {
 export interface ShoppingListItem {
   category: string;
   item: string;
+  searchQuery?: string;
   notes?: string;
   estPrice?: string;
+  productUrl?: string;
+  retailer?: string;
+  productPrice?: string;
+  productImageUrl?: string;
+}
+
+export interface ProductSearchResult {
+  productUrl: string;
+  retailer: string;
+  productPrice: string;
+  productTitle: string;
+  extractedPrice: number;
+  productImageUrl?: string;
 }
 
 export interface GenerateResponse {

@@ -107,7 +107,7 @@ export function StyleStep({ roomType, data, onChange }: StyleStepProps) {
         Which rooms inspire you?
       </h2>
       <p className="mt-3 text-stone-600">
-        Pick up to {MAX_INSPIRATION_SELECTION} rooms that match the look you want. We&apos;ve loaded ideas
+        Pick up to {MAX_INSPIRATION_SELECTION}&nbsp;rooms that match the look you want. We&apos;ve loaded ideas
         for your {roomType.toLowerCase()}.
       </p>
 
